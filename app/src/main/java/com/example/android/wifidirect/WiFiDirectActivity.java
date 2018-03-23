@@ -28,6 +28,7 @@ import android.net.wifi.p2p.WifiP2pManager.ActionListener;
 import android.net.wifi.p2p.WifiP2pManager.Channel;
 import android.net.wifi.p2p.WifiP2pManager.ChannelListener;
 import android.os.Bundle;
+import android.os.StrictMode;
 import android.provider.Settings;
 import android.util.Log;
 import android.view.Menu;
@@ -70,6 +71,14 @@ public class WiFiDirectActivity extends Activity implements ChannelListener, Dev
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.main);
+
+
+        //Fix for crash, where higher SDK crashes when trying to connect to phone with lower SDK (for some reason)
+        if (android.os.Build.VERSION.SDK_INT > 9)
+        {
+            StrictMode.ThreadPolicy policy = new StrictMode.ThreadPolicy.Builder().permitAll().build();
+            StrictMode.setThreadPolicy(policy);
+        }
 
         // add necessary intent values to be matched.
 

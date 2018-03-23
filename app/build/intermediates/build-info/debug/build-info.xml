@@ -1,36 +1,39 @@
 <?xml version="1.0" encoding="utf-8"?>
 <instant-run
-    abi="arm64-v8a,armeabi-v7a,armeabi"
-    api-level="24"
+    abi="armeabi-v7a,armeabi"
+    api-level="21"
     build-mode="COLD"
-    density="xxhdpi"
+    density="hdpi"
     format="10"
-    ir-eligibility="CLASS_ADDED"
+    ir-eligibility="METHOD_ADDED"
     plugin-version="3.0.1"
-    timestamp="1521812020038"
+    timestamp="1521831897790"
     token="8277776101340906224"
     verifier="COLD_SWAP_REQUESTED" >
 
     <task
         name="javac"
-        duration="282" />
+        duration="205" />
     <task
         name="instant-run-dex"
         duration="0" />
     <task
         name="instant-run-transform"
-        duration="22" />
+        duration="11" />
     <task
         name="verifier"
-        duration="23" />
+        duration="6" />
 
     <artifact
         location="C:\Users\TheDarkOne\AndroidStudioProjects\WiFiDirectDemo\app\build\intermediates\split-apk\debug\slices\slice_2.apk"
         type="SPLIT" />
+    <artifact
+        location="C:\Users\TheDarkOne\AndroidStudioProjects\WiFiDirectDemo\app\build\outputs\apk\debug\app-debug.apk"
+        type="SPLIT_MAIN" />
 
     <build
         build-mode="FULL"
-        timestamp="1521809423776"
+        timestamp="1521831435305"
         verifier="FULL_BUILD_REQUESTED" >
         <artifact
             location="C:\Users\TheDarkOne\AndroidStudioProjects\WiFiDirectDemo\app\build\intermediates\split-apk\debug\slices\slice_2.apk"
@@ -68,12 +71,15 @@
     </build>
     <build
         build-mode="COLD"
-        ir-eligibility="CLASS_ADDED"
-        timestamp="1521812020038"
+        ir-eligibility="METHOD_ADDED"
+        timestamp="1521831897790"
         verifier="COLD_SWAP_REQUESTED" >
         <artifact
             location="C:\Users\TheDarkOne\AndroidStudioProjects\WiFiDirectDemo\app\build\intermediates\split-apk\debug\slices\slice_2.apk"
             type="SPLIT" />
+        <artifact
+            location="C:\Users\TheDarkOne\AndroidStudioProjects\WiFiDirectDemo\app\build\outputs\apk\debug\app-debug.apk"
+            type="SPLIT_MAIN" />
     </build>
 
 </instant-run>

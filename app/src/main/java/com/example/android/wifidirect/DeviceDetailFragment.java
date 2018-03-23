@@ -30,12 +30,15 @@ import android.net.wifi.p2p.WifiP2pManager.ConnectionInfoListener;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Environment;
+import android.os.Handler;
+import android.os.Message;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
 
+import com.example.android.wifidirect.WiFiChatFragment.MessageTarget;
 import com.example.android.wifidirect.DeviceListFragment.DeviceActionListener;
 
 import java.io.File;
@@ -50,13 +53,23 @@ import java.net.Socket;
  * A fragment that manages a particular peer and allows interaction with device
  * i.e. setting up network connection and transferring data.
  */
-public class DeviceDetailFragment extends Fragment implements ConnectionInfoListener {
+public class DeviceDetailFragment extends Fragment implements Handler.Callback, ConnectionInfoListener, MessageTarget {
 
+    static final int SERVER_PORT = 4545;
+    public static final int MESSAGE_READ = 0x400 + 1;
+    public static final int MY_HANDLE = 0x400 + 2;
+    private WiFiChatFragment chatFragment;
+    public static final String TAG = "wifidirectdemo";
     protected static final int CHOOSE_FILE_RESULT_CODE = 20;
     private View mContentView = null;
     private WifiP2pDevice device;
     private WifiP2pInfo info;
     ProgressDialog progressDialog = null;
+    private Handler handler = new Handler(this);
+
+    public Handler getHandler() {
+        return handler;
+    }
 
     @Override
     public void onActivityCreated(Bundle savedInstanceState) {
@@ -65,6 +78,8 @@ public class DeviceDetailFragment extends Fragment implements ConnectionInfoList
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
+        Thread handler = null;
+
 
         mContentView = inflater.inflate(R.layout.device_detail, null);
         mContentView.findViewById(R.id.btn_connect).setOnClickListener(new View.OnClickListener() {
@@ -116,6 +131,15 @@ public class DeviceDetailFragment extends Fragment implements ConnectionInfoList
                         startActivityForResult(intent, CHOOSE_FILE_RESULT_CODE);
                     }
                 });
+        mContentView.findViewById((R.id.btn_start_chat)).setOnClickListener(
+                new View.OnClickListener() {
+                    @Override
+                    public void onClick(View view) {
+                        // replace the below fragment with chatFragment
+                        getFragmentManager().beginTransaction().show(chatFragment);
+                    }
+                }
+        );
 
         return mContentView;
     }
@@ -145,6 +169,8 @@ public class DeviceDetailFragment extends Fragment implements ConnectionInfoList
     In cases where multiple devices are going to be connected to a single device (like a game with three or more players, or a chat app), one device is designated the "group owner".
     You can designate a particular device as the network's group owner by following the steps in the Create a Group section. */
     public void onConnectionInfoAvailable(final WifiP2pInfo info) {
+        Thread handler = null;
+
         if (progressDialog != null && progressDialog.isShowing()) {
             progressDialog.dismiss();
         }
@@ -164,19 +190,64 @@ public class DeviceDetailFragment extends Fragment implements ConnectionInfoList
         // After the group negotiation, we assign the group owner as the file
         // server. The file server is single threaded, single connection server
         // socket.
+        /*
+         * The group owner accepts connections using a server socket and then spawns a
+         * client socket for every client. This is handled by {@code
+         * GroupOwnerSocketHandler}
+         */
         if (info.groupFormed && info.isGroupOwner) {
             new FileServerAsyncTask(getActivity(), mContentView.findViewById(R.id.status_text))
                     .execute();
+            Log.d(TAG, "Connected as group owner");
+            try {
+                handler = new GroupOwnerSocketHandler(
+                        ((WiFiChatFragment.MessageTarget) this).getHandler());
+                handler.start();
+            } catch (IOException e) {
+                Log.d(TAG,
+                        "Failed to create a server thread - " + e.getMessage());
+                return;
+            }
         } else if (info.groupFormed) {
             // The other device acts as the client. In this case, we enable the
             // get file button.
+            Log.d(TAG, "Connected as peer");
+            handler = new ClientSocketHandler(
+                    ((MessageTarget) this).getHandler(),
+                    info.groupOwnerAddress);
+            handler.start();
+
+            // Make the "Launch Gallery visible"
             mContentView.findViewById(R.id.btn_start_client).setVisibility(View.VISIBLE);
             ((TextView) mContentView.findViewById(R.id.status_text)).setText(getResources()
                     .getString(R.string.client_text));
         }
 
+        chatFragment = new WiFiChatFragment();
+        getFragmentManager().beginTransaction().replace(R.id.frag_chat, chatFragment).commit();
+        getFragmentManager().beginTransaction().hide(chatFragment);
+
         // hide the connect button
         mContentView.findViewById(R.id.btn_connect).setVisibility(View.GONE);
+    }
+
+    @Override
+    public boolean handleMessage(Message msg) {
+        switch (msg.what) {
+            case MESSAGE_READ:
+                byte[] readBuf = (byte[]) msg.obj;
+                // construct a string from the valid bytes in the buffer
+                String readMessage = new String(readBuf, 0, msg.arg1);
+                Log.d(TAG, readMessage);
+                (chatFragment).pushMessage("Buddy: " + readMessage);
+                break;
+
+            case MY_HANDLE:
+                Object obj = msg.obj;
+                (chatFragment).setChatManager((ChatManager) obj);
+
+        }
+        return true;
     }
 
     /**

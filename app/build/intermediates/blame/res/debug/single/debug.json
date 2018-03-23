@@ -72,6 +72,10 @@
         "source": "C:\\Users\\TheDarkOne\\AndroidStudioProjects\\WiFiDirectDemo\\app\\src\\main\\res\\drawable-hdpi\\ic_action_on_off.png"
     },
     {
+        "merged": "C:\\Users\\TheDarkOne\\AndroidStudioProjects\\WiFiDirectDemo\\app\\build\\intermediates\\res\\merged\\debug\\layout_fragment_chat.xml.flat",
+        "source": "C:\\Users\\TheDarkOne\\AndroidStudioProjects\\WiFiDirectDemo\\app\\src\\main\\res\\layout\\fragment_chat.xml"
+    },
+    {
         "merged": "C:\\Users\\TheDarkOne\\AndroidStudioProjects\\WiFiDirectDemo\\app\\build\\intermediates\\res\\merged\\debug\\layout_device_list.xml.flat",
         "source": "C:\\Users\\TheDarkOne\\AndroidStudioProjects\\WiFiDirectDemo\\app\\src\\main\\res\\layout\\device_list.xml"
     },
