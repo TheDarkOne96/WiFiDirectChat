@@ -28,6 +28,7 @@ import android.net.wifi.p2p.WifiP2pDevice;
 import android.net.wifi.p2p.WifiP2pInfo;
 import android.net.wifi.p2p.WifiP2pManager.ConnectionInfoListener;
 import android.os.AsyncTask;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
@@ -56,6 +57,7 @@ import java.net.Socket;
 public class DeviceDetailFragment extends Fragment implements Handler.Callback, ConnectionInfoListener, MessageTarget {
 
     static final int SERVER_PORT = 4545;
+    private boolean ClientCheck = false;
     public static final int MESSAGE_READ = 0x400 + 1;
     public static final int MY_HANDLE = 0x400 + 2;
     private WiFiChatFragment chatFragment;
@@ -66,6 +68,7 @@ public class DeviceDetailFragment extends Fragment implements Handler.Callback, 
     private WifiP2pInfo info;
     ProgressDialog progressDialog = null;
     private Handler handler = new Handler(this);
+    public static String clientIP = "";
 
     public Handler getHandler() {
         return handler;
@@ -127,7 +130,7 @@ public class DeviceDetailFragment extends Fragment implements Handler.Callback, 
                         // Allow user to pick an image from Gallery or other
                         // registered apps
                         Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
-                        intent.setType("image/*");
+                        intent.setType("video/*");
                         startActivityForResult(intent, CHOOSE_FILE_RESULT_CODE);
                     }
                 });
@@ -145,6 +148,7 @@ public class DeviceDetailFragment extends Fragment implements Handler.Callback, 
     }
 
     @Override
+    // Here is the usage of FileTransferService Class
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
 
         // User has picked an image. Transfer it to group owner i.e peer using
@@ -156,8 +160,15 @@ public class DeviceDetailFragment extends Fragment implements Handler.Callback, 
         Intent serviceIntent = new Intent(getActivity(), FileTransferService.class);
         serviceIntent.setAction(FileTransferService.ACTION_SEND_FILE);
         serviceIntent.putExtra(FileTransferService.EXTRAS_FILE_PATH, uri.toString());
-        serviceIntent.putExtra(FileTransferService.EXTRAS_GROUP_OWNER_ADDRESS,
-                info.groupOwnerAddress.getHostAddress());
+        if(!clientIP.equalsIgnoreCase("")) {
+            serviceIntent.putExtra(FileTransferService.EXTRAS_GROUP_OWNER_ADDRESS,
+                    clientIP);
+        }
+        else {
+            serviceIntent.putExtra(FileTransferService.EXTRAS_GROUP_OWNER_ADDRESS,
+                    info.groupOwnerAddress.getHostAddress());
+
+        }
         serviceIntent.putExtra(FileTransferService.EXTRAS_GROUP_OWNER_PORT, 8988);
         getActivity().startService(serviceIntent);
     }
@@ -211,17 +222,31 @@ public class DeviceDetailFragment extends Fragment implements Handler.Callback, 
         } else if (info.groupFormed) {
             // The other device acts as the client. In this case, we enable the
             // get file button.
+            if(!ClientCheck){
+                firstConnectionMessage firstObj = new firstConnectionMessage();
+                if (firstObj != null) {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB) {
+                        firstObj.executeOnExecutor(
+                                AsyncTask.THREAD_POOL_EXECUTOR,
+                                new String[]{null});
+                    } else
+                        firstObj.execute();
+                }
+            }
+            new FileServerAsyncTask(getActivity(), mContentView.findViewById(R.id.status_text))
+                    .execute();
             Log.d(TAG, "Connected as peer");
             handler = new ClientSocketHandler(
                     ((MessageTarget) this).getHandler(),
                     info.groupOwnerAddress);
             handler.start();
 
-            // Make the "Launch Gallery visible"
-            mContentView.findViewById(R.id.btn_start_client).setVisibility(View.VISIBLE);
+
             ((TextView) mContentView.findViewById(R.id.status_text)).setText(getResources()
                     .getString(R.string.client_text));
         }
+        // Make the "Launch Gallery visible"
+        mContentView.findViewById(R.id.btn_start_client).setVisibility(View.VISIBLE);
 
         chatFragment = new WiFiChatFragment();
         getFragmentManager().beginTransaction().replace(R.id.frag_chat, chatFragment).commit();
@@ -306,6 +331,8 @@ public class DeviceDetailFragment extends Fragment implements Handler.Callback, 
                 ServerSocket serverSocket = new ServerSocket(8988);
                 Log.d(WiFiDirectActivity.TAG, "Server: Socket opened");
                 Socket client = serverSocket.accept();
+                clientIP = client.getInetAddress().getHostAddress();
+
                 Log.d(WiFiDirectActivity.TAG, "Server: connection done");
                 final File f = new File(Environment.getExternalStorageDirectory() + "/"
                         + context.getPackageName() + "/wifip2pshared-" + System.currentTimeMillis()
@@ -369,6 +396,58 @@ public class DeviceDetailFragment extends Fragment implements Handler.Callback, 
             return false;
         }
         return true;
+    }
+
+    /*
+     * Async class that has to be called when connection establish first time. Its main motive is to send blank message
+     * to server so that server knows the IP address of client to send files Bi-Directional.
+     */
+    class firstConnectionMessage extends AsyncTask<String, Void, String> {
+
+
+        public firstConnectionMessage() {
+            // TODO Auto-generated constructor stub
+        }
+
+        @Override
+        protected String doInBackground(String... params) {
+            // TODO Auto-generated method stub
+
+            Intent serviceIntent = new Intent(getActivity(),
+                    WiFiClientIPTransferService.class);
+
+            serviceIntent.setAction(FileTransferService.ACTION_SEND_FILE);
+
+            if (info.groupOwnerAddress.getHostAddress() != null) {
+                serviceIntent.putExtra(
+                        FileTransferService.EXTRAS_GROUP_OWNER_ADDRESS,
+                        info.groupOwnerAddress.getHostAddress());
+
+                serviceIntent.putExtra(
+                        FileTransferService.EXTRAS_GROUP_OWNER_PORT,
+                        "1234");
+                serviceIntent.putExtra(FileTransferService.emptyMsg,
+                        FileTransferService.emptyMsg);
+
+            }
+
+            getActivity().startService(serviceIntent);
+
+            return "success";
+        }
+
+        @Override
+        protected void onPostExecute(String result) {
+            // TODO Auto-generated method stub
+            super.onPostExecute(result);
+            if (result != null) {
+                if (result.equalsIgnoreCase("success")) {
+                    ClientCheck = true;
+                }
+            }
+
+        }
+
     }
 
 }

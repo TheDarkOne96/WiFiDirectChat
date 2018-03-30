@@ -1,7 +1,0 @@
-#Internal package file, do not edit.
-#Fri Mar 23 22:57:15 GST 2018
-0.baseType=DIRECTORY
-0.base=C\:\\Users\\TheDarkOne\\AndroidStudioProjects\\WiFiDirectDemo\\app\\build\\intermediates\\assets\\debug
-0.path=sample_file.txt
-0.set=ASSET
-count=1
